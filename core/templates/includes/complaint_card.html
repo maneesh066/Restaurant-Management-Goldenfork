@@ -1,0 +1,66 @@
+<div class="col-12">
+    <div class="card bg-dark text-white border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <!-- Left side: Complaint Info -->
+                <div class="col-md-6 border-end border-secondary">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold text-warning mb-1">{{ complaint.name }}</h5>
+                            <p class="small text-white-50 mb-0">
+                                <i class="fas fa-envelope me-1"></i> {{ complaint.email }} | 
+                                <i class="fas fa-phone me-1"></i> {{ complaint.phone }}
+                            </p>
+                        </div>
+                        <span class="badge {% if complaint.status == 'Pending' %}bg-danger{% elif complaint.status == 'Resolved' %}bg-success{% elif complaint.status == 'Closed' %}bg-secondary{% else %}bg-info{% endif %} px-3 py-2 rounded-pill">
+                            {{ complaint.status }}
+                        </span>
+                    </div>
+                    
+                    <div class="bg-secondary bg-opacity-25 p-3 rounded mb-3 border-start border-warning border-4">
+                        <p class="mb-0 fw-light">{{ complaint.description }}</p>
+                    </div>
+
+                    {% if complaint.address %}
+                    <p class="small text-white-50 mb-3"><i class="fas fa-map-marker-alt me-1 text-warning"></i> {{ complaint.address }}</p>
+                    {% endif %}
+
+                    {% if complaint.image %}
+                    <div class="mb-3">
+                        <a href="{{ complaint.image.url }}" target="_blank">
+                            <img src="{{ complaint.image.url }}" class="img-fluid rounded border border-secondary shadow-sm" style="max-height: 150px; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <p class="small text-white-50 mb-0">
+                        <i class="far fa-clock me-1"></i> Submitted: {{ complaint.created_at|date:"d M Y, H:i" }}
+                    </p>
+                </div>
+
+                <!-- Right side: Actions & Reply -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold mb-3 text-warning">Action Center</h6>
+                    <form action="/manager/update-complaint-status/{{ complaint.id }}/" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Update Status</label>
+                            <select name="status" class="form-select bg-secondary text-white border-0 py-2">
+                                <option value="Pending" {% if complaint.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Resolved" {% if complaint.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="Closed" {% if complaint.status == 'Closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-white-50">Reply to Customer (Sends Email)</label>
+                            <textarea name="reply" class="form-control bg-secondary text-white border-0" rows="3" placeholder="Enter your response to the customer...">{{ complaint.manager_reply|default:'' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">
+                            <i class="fas fa-paper-plane me-2"></i> Update & Notify Customer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

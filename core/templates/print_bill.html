@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Print Bill - Order #{{ order.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; font-family: 'Courier New', Courier, monospace; }
+        .receipt {
+            background: #fff;
+            width: 80mm;
+            margin: 20px auto;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .footer { text-align: center; border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px; }
+        .item-row { display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; }
+        @media print {
+            .no-print { display: none; }
+            body { background: #fff; margin: 0; }
+            .receipt { box-shadow: none; margin: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print text-center mt-3">
+        <button id="prepareBtn" onclick="showPrint()" class="btn btn-warning shadow fw-bold">View Print Option</button>
+        <button id="printBtn" onclick="window.print()" class="btn btn-primary shadow fw-bold" style="display:none;">Print Now</button>
+        <a href="{% url 'manager_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <script>
+        function showPrint() {
+            document.getElementById('printBtn').style.display = 'inline-block';
+            document.getElementById('prepareBtn').style.display = 'none';
+        }
+    </script>
+
+    <div class="receipt">
+        <div class="header">
+            <h4 class="mb-0">GOLDEN FORK</h4>
+            <p class="small mb-0">Premium Dining Experience</p>
+            <p class="small">Token: {{ order.token_number }} | ID: #{{ order.id }}</p>
+        </div>
+
+        <div class="content">
+            <p class="small mb-2">Date: {{ order.created_at|date:"d/m/Y H:i" }}</p>
+            
+            {% if order.status == 'Cancelled' %}
+            <div class="alert alert-danger text-center fw-bold py-1 mb-2" style="font-size: 1.2rem; border: 2px solid red;">
+                CANCELLED
+            </div>
+            {% endif %}
+
+            <hr style="border-top: 1px dashed #000;">
+            
+            {% for oi in items %}
+            <div class="item-row">
+                <span>{{ oi.item.name }} x{{ oi.quantity }}</span>
+                <span>₹{{ oi.item.price|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+
+            <hr style="border-top: 1px dashed #000;">
+            
+            <div class="total-row">
+                <span>Total Amount:</span>
+                <span>₹{{ order.total_amount|floatformat:2 }}</span>
+            </div>
+
+            {% if order.payment_set.first %}
+            <div class="mt-3 text-center">
+                <p class="small mb-0 fw-bold">Payment Method: {{ order.payment_set.first.method|upper }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p class="small">Thank You! Visit Again.</p>
+            <p class="small" style="font-size: 0.7rem;">GST Included (5%)</p>
+        </div>
+    </div>
+
+</body>
+</html>

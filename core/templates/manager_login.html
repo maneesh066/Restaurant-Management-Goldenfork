@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-5 shadow-lg border-0 animate__animated animate__zoomIn" 
+         style="max-width: 450px; width: 100%; background: rgba(20, 20, 20, 0.9); border-radius: 20px; border: 1px solid #333; backdrop-filter: blur(10px);">
+        
+        <div class="text-center mb-5">
+            <div class="bg-warning d-inline-block p-3 rounded-circle mb-3 shadow">
+                <i class="fas fa-user-shield fs-1 text-black"></i>
+            </div>
+            <h2 class="fw-bold text-white mb-1">MANAGER LOGIN</h2>
+            <p class="text-muted small">Access the administrative dashboard</p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-danger text-center small py-2 mb-4 animate__animated animate__shakeX">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="form-label text-warning small fw-bold" style="color: gold !important;">USERNAME</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-warning"><i class="fas fa-user"></i></span>
+                    <input type="text" name="username" class="form-control bg-dark text-white border-secondary" placeholder="Enter username" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-warning small fw-bold" style="color: gold !important;">PASSWORD</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-dark border-secondary text-warning"><i class="fas fa-lock"></i></span>
+                    <input type="password" name="password" class="form-control bg-dark text-white border-secondary" placeholder="Enter password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 py-3 fw-bold fs-5 shadow-lg transition-all mt-2">
+                SIGN IN <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+        </form>
+
+        <div class="text-center mt-5">
+            <a href="/" class="text-muted text-decoration-none small hover-gold"><i class="fas fa-chevron-left me-1"></i> Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition-all { transition: all 0.3s ease; }
+    .hover-gold:hover { color: gold !important; }
+    .input-group-text { border-right: none; }
+    input:focus { box-shadow: none !important; border-color: gold !important; }
+    .card { box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; }
+</style>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    {% include '_manager_navbar.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-bold text-warning mb-0">Complaint Management</h2>
+            <p class="text-white-50 mb-0">Review, verify, and resolve customer complaints.</p>
+        </div>
+    </div>
+
+    <!-- ✅ TABS FOR CATEGORIZATION -->
+    <ul class="nav nav-pills mb-4 justify-content-center bg-dark p-2 rounded-pill shadow" id="complaintTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-4 rounded-pill fw-bold" id="pending-tab" data-bs-toggle="pill" data-bs-target="#pending" type="button" role="tab">
+                Pending <span class="badge bg-danger ms-2">{{ pending.count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-4 rounded-pill fw-bold" id="resolved-tab" data-bs-toggle="pill" data-bs-target="#resolved" type="button" role="tab">
+                Resolved <span class="badge bg-success ms-2">{{ resolved.count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-4 rounded-pill fw-bold" id="closed-tab" data-bs-toggle="pill" data-bs-target="#closed" type="button" role="tab">
+                Closed <span class="badge bg-secondary ms-2">{{ closed.count }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="complaintTabsContent">
+        <!-- PENDING SECTION -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            <div class="row g-4">
+                {% for complaint in pending %}
+                    {% include 'includes/complaint_card.html' with complaint=complaint %}
+                {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <h4 class="text-white-50 opacity-50">No pending complaints.</h4>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- RESOLVED SECTION -->
+        <div class="tab-pane fade" id="resolved" role="tabpanel">
+            <div class="row g-4">
+                {% for complaint in resolved %}
+                    {% include 'includes/complaint_card.html' with complaint=complaint %}
+                {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <h4 class="text-white-50 opacity-50">No resolved complaints.</h4>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- CLOSED SECTION -->
+        <div class="tab-pane fade" id="closed" role="tabpanel">
+            <div class="row g-4">
+                {% for complaint in closed %}
+                    {% include 'includes/complaint_card.html' with complaint=complaint %}
+                {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <h4 class="text-white-50 opacity-50">No closed complaints.</h4>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-pills .nav-link {
+        color: rgba(255,255,255,0.6);
+        transition: all 0.3s ease;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+    }
+    .nav-pills .nav-link:hover:not(.active) {
+        background-color: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+</style>
+
+{% endblock %}

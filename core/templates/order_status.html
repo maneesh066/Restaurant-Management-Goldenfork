@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card bg-dark text-light p-4 shadow-lg mx-auto" style="max-width: 600px; border: 1px solid #333;">
+        
+        <div class="text-center mb-4">
+            <h2 style="color: gold; font-weight: bold;">Order Status ⏳</h2>
+        </div>
+
+        {% if error %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    showModalAlert("{{ error|escapejs }}");
+                });
+            </script>
+        {% endif %}
+
+        {% if not orders %}
+            <div class="text-center">
+                <p class="text-muted">No active orders found.</p>
+                <form method="POST" action="/order-status/" class="mt-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Enter Your Order ID to track another</label>
+                        <input type="number" name="token_number" class="form-control form-control-lg text-center" placeholder="e.g. 1" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold shadow">TRACK ORDER</button>
+                </form>
+            </div>
+        {% else %}
+            {% for order in orders %}
+            <div class="order-card mb-4 p-4 border border-secondary rounded-3 bg-dark shadow-sm" data-id="{{ order.id }}" data-status="{{ order.status }}" data-acceptance="{{ order.kitchen_acceptance_status }}">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4 class="mb-0 text-warning fw-bold">#GF{{ order.id|stringformat:"05d" }}</h4>
+                        <p class="text-muted small mb-0">{{ order.created_at|date:"d M, H:i" }}</p>
+                    </div>
+                    <span class="badge {% if order.status == 'Pending' %}bg-secondary{% elif order.status == 'Cooking' %}bg-warning text-dark{% else %}bg-success{% endif %} p-2 px-3">
+                        {{ order.status|upper }}
+                    </span>
+                </div>
+
+                <!-- Kitchen Acceptance Alert (Internal) -->
+                {% if order.kitchen_acceptance_status == 'Pending' %}
+                <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-center py-3 mb-3 rounded-3">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                        <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                        <h6 class="mb-0 fw-bold text-warning">WAITING FOR KITCHEN ACCEPTANCE</h6>
+                    </div>
+                    <p class="text-light small mb-2">
+                        {% if order.is_excess_stock %}
+                            You ordered excess quantity. The kitchen needs to approve this order.
+                        {% else %}
+                            Please wait while the kitchen accepts your order.
+                        {% endif %}
+                    </p>
+                    {% if order.time_left_excess > 0 %}
+                    <div class="badge bg-warning text-dark py-2 px-3">
+                        <i class="fas fa-hourglass-half me-1"></i> Kitchen window: <span id="excess-timer-{{ order.id }}">{{ order.time_left_excess }}</span>s
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="row g-0 mb-3 border-top border-bottom border-secondary py-3">
+                    <div class="col-6">
+                        <p class="mb-0 text-muted small">Items</p>
+                        <p class="mb-0 fw-bold">{{ order.orderitem_set.count }} items</p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <p class="mb-0 text-muted small">Total Amount</p>
+                        <p class="mb-0 fw-bold text-success">₹{{ order.total_amount }}</p>
+                    </div>
+                </div>
+
+                <div class="status-message p-2 bg-black bg-opacity-50 rounded mb-3">
+                    {% if order.status == 'Pending' %}
+                        <p class="mb-0 text-info small"><i class="fas fa-clock me-1"></i> Waiting for your confirmation...</p>
+                    {% elif order.status == 'Cooking' %}
+                        <p class="mb-0 text-warning small"><i class="fas fa-fire me-1"></i> Your food is being prepared.</p>
+                    {% elif order.status == 'Ready' %}
+                        <p class="mb-0 text-success small"><i class="fas fa-check-circle me-1"></i> Your order is ready! Proceed to payment.</p>
+                    {% elif order.status == 'Cancelled' %}
+                        <p class="mb-0 text-danger small"><i class="fas fa-times-circle me-1"></i> This order has been cancelled.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Kitchen Reply -->
+                {% if order.kitchen_reply %}
+                <div class="p-2 bg-info bg-opacity-10 rounded mb-3 border border-info border-opacity-25">
+                    <p class="mb-0 small text-info"><i class="fas fa-comment-dots me-1"></i> <strong>Kitchen Reply:</strong> {{ order.kitchen_reply }}</p>
+                </div>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    {% if order.status != 'Cancelled' %}
+                    <a href="/payment/{{ order.id }}/" class="btn btn-outline-warning btn-sm flex-grow-1">
+                        View Payment / Status
+                    </a>
+                    {% endif %}
+                    
+                    {% if order.status == 'Pending' %}
+                    <div class="w-100 text-center mb-2" id="timer-container-{{ order.id }}">
+                        {% if not order.is_confirmed and order.time_left > 0 %}
+                        <span class="text-warning fw-bold small"><i class="fas fa-stopwatch me-1"></i> Confirm or Change in: <span id="timer-{{ order.id }}">{{ order.time_left }}</span>s</span>
+                        {% else %}
+                        <span class="text-success fw-bold small"><i class="fas fa-check-circle me-1"></i> Order Confirmed</span>
+                        {% endif %}
+                    </div>
+                    <div class="w-100 d-flex gap-2" id="action-btns-{{ order.id }}">
+                        {% if not order.is_confirmed %}
+                        <button onclick="confirmOrder({{ order.id }})" class="btn btn-success btn-sm flex-grow-1 fw-bold">Confirm</button>
+                        <button onclick="changeFood({{ order.id }})" class="btn btn-info btn-sm flex-grow-1 fw-bold">Change</button>
+                        <button onclick="cancelOrder({{ order.id }})" class="btn btn-danger btn-sm flex-grow-1 fw-bold">Cancel</button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if order.status == 'Cooking' or order.status == 'Pending' %}
+                    <button onclick="alertKitchen({{ order.id }})" class="btn btn-outline-danger btn-sm px-3" id="alertBtn-{{ order.id }}">
+                        <i class="fas fa-bell me-1"></i> Alert Kitchen
+                    </button>
+                    {% endif %}
+
+                    {% if order.status == 'Ready' %}
+                    <button onclick="markServed({{ order.id }})" class="btn btn-success btn-sm w-100 mt-2 fw-bold py-2">
+                        <i class="fas fa-utensils me-1"></i> Food Served - Finish
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Removed Track another order button -->
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-warning" style="border-radius: 15px;">
+            <div class="modal-body text-center p-5">
+                <div class="mb-3">
+                    <i class="fas fa-info-circle text-warning" style="font-size: 3.5rem;"></i>
+                </div>
+                <h4 id="modalMessage" class="fw-bold mb-4"></h4>
+                <button class="btn btn-warning px-5 py-2 fw-bold rounded-pill" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-warning" style="border-radius: 15px;">
+            <div class="modal-body text-center p-5">
+                <div class="mb-3">
+                    <i class="fas fa-question-circle text-warning" style="font-size: 3.5rem;"></i>
+                </div>
+                <h4 id="confirmMessage" class="fw-bold mb-4"></h4>
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="btn btn-outline-light px-4 py-2 rounded-pill" data-bs-dismiss="modal">No, Cancel</button>
+                    <button id="confirmYesBtn" class="btn btn-warning px-4 py-2 fw-bold rounded-pill">Yes, Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showModalAlert(message) {
+        document.getElementById('modalMessage').innerText = message;
+        new bootstrap.Modal(document.getElementById('notificationModal')).show();
+    }
+
+    function showModalConfirm(message, onConfirm) {
+        document.getElementById('confirmMessage').innerText = message;
+        const yesBtn = document.getElementById('confirmYesBtn');
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        
+        // Remove old listeners
+        const newYesBtn = yesBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+        
+        newYesBtn.addEventListener('click', function() {
+            modal.hide();
+            onConfirm();
+        });
+        
+        modal.show();
+    }
+
+    function cancelOrder(orderId) {
+        showModalConfirm("Are you sure you want to cancel this order?", function() {
+            fetch(`/cancel-order/${orderId}/`)
+            .then(r => r.json())
+            .then(data => {
+                showToast(data.message);
+                if (data.status === 'success') setTimeout(() => location.reload(), 1000);
+            });
+        });
+    }
+    
+    function confirmOrder(orderId) {
+        showModalConfirm("Are you sure to confirm the order? The cancellation is not available after confirmation.", function() {
+            fetch(`/confirm-order/${orderId}/`)
+            .then(r => r.json())
+            .then(data => {
+                showToast(data.message);
+                if (data.status === 'success') setTimeout(() => location.reload(), 1000);
+            });
+        });
+    }
+    
+    function changeFood(orderId) {
+        showModalConfirm("Are you sure you want to change the food? This will cancel the current order and take you back to the menu.", function() {
+            window.location.href = `/change-food/${orderId}/`;
+        });
+    }
+    
+    // Timers
+    {% for order in orders %}
+    {% if order.status == 'Pending' and not order.is_confirmed and not order.is_excess_stock and order.time_left > 0 %}
+    (function() {
+        let timeLeft = {{ order.time_left }};
+        const timerEl = document.getElementById('timer-{{ order.id }}');
+        const interval = setInterval(function() {
+            timeLeft--;
+            if(timeLeft <= 0) {
+                clearInterval(interval);
+                location.reload();
+            } else {
+                if(timerEl) timerEl.innerText = timeLeft;
+            }
+        }, 1000);
+    })();
+    {% endif %}
+
+    {% if order.is_excess_stock and order.kitchen_acceptance_status == 'Pending' and order.time_left_excess > 0 %}
+    (function() {
+        let timeLeft = {{ order.time_left_excess }};
+        const timerEl = document.getElementById('excess-timer-{{ order.id }}');
+        const interval = setInterval(function() {
+            timeLeft--;
+            if(timeLeft <= 0) {
+                clearInterval(interval);
+                location.reload();
+            } else {
+                if(timerEl) timerEl.innerText = timeLeft;
+            }
+        }, 1000);
+    })();
+    {% endif %}
+    {% endfor %}
+
+    function alertKitchen(orderId) {
+        fetch(`/alert-kitchen/${orderId}/`)
+        .then(r => r.json())
+        .then(data => {
+            showModalAlert("Alert sent to kitchen!");
+            const btn = document.getElementById(`alertBtn-${orderId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "Alerted";
+            }
+        });
+    }
+
+    function markServed(orderId) {
+        showModalConfirm("Confirm that you have received your food?", function() {
+            fetch(`/mark-served/${orderId}/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showModalAlert(data.message);
+                }
+            });
+        });
+    }
+
+    // Status Change Popup Logic
+    let lastStatuses = {};
+    let lastAcceptance = {};
+    {% for order in orders %}
+    lastStatuses["{{ order.id }}"] = "{{ order.status }}";
+    lastAcceptance["{{ order.id }}"] = "{{ order.kitchen_acceptance_status }}";
+    {% endfor %}
+
+    setInterval(function() {
+        fetch(window.location.href)
+        .then(r => r.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            doc.querySelectorAll('.order-card').forEach(card => {
+                const id = card.getAttribute('data-id');
+                const currentStatus = card.getAttribute('data-status');
+                const currentAcceptance = card.getAttribute('data-acceptance');
+                
+                if (lastStatuses[id] && (lastStatuses[id] !== currentStatus || lastAcceptance[id] !== currentAcceptance)) {
+                    let msg = "";
+                    if (lastStatuses[id] === currentStatus && lastAcceptance[id] !== currentAcceptance && currentAcceptance === 'Accepted') {
+                        msg = "Your order has been accepted by the kitchen!";
+                    } else if (currentStatus === 'Cooking') {
+                        msg = "Your food is being prepared! It will be served to your table shortly.";
+                    } else if (currentStatus === 'Ready') {
+                        msg = "Your order is ready! Please proceed to payment.";
+                    } else if (currentStatus === 'Cancelled') {
+                        msg = "Your order has been cancelled.";
+                    } else if (currentStatus === 'Paid') {
+                        msg = "Payment confirmed! Enjoy your meal.";
+                    }
+
+                    if (msg) {
+                        showModalAlert(msg);
+                        document.getElementById('notificationModal').addEventListener('hidden.bs.modal', function () {
+                            location.reload();
+                        }, {once: true});
+                    } else {
+                        location.reload();
+                    }
+                }
+            });
+        });
+    }, 5000);
+</script>
+{% endblock %}

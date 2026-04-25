@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% include '_manager_navbar.html' %}
+
+<!-- 🔴🟢 STATUS DISPLAY -->
+<div class="card p-3 mb-4 text-center bg-dark border-secondary">
+    {% if status and status.is_open %}
+        <h3 style="color:lightgreen;">🟢 Restaurant is OPEN</h3>
+    {% else %}
+        <h3 style="color:red;">🔴 Restaurant is CLOSED</h3>
+    {% endif %}
+</div>
+
+<!-- 📊 SALES ANALYTICS -->
+<div class="card p-4 mb-4 shadow-sm border-0 bg-dark text-light">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <p class="text-muted mb-0 small uppercase letter-spacing-1">TOTAL SALE</p>
+            <h2 class="display-5 fw-bold" style="color: lightgreen;">Total Sale: ₹{{ total_sales|floatformat:2 }}</h2>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <p class="mb-2 small" style="color: white !important;">FILTER BY THE DATE</p>
+            <form method="GET" class="d-flex flex-wrap justify-content-md-end gap-2 align-items-center">
+                <div class="input-group input-group-sm" style="width: 200px;">
+                    <input type="date" name="date" class="form-control bg-dark text-white border-warning" value="{{ specific_date }}">
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 📋 ORDERS -->
+<div class="card p-3" id="orders-table">
+    <h4>All Orders</h4>
+
+    <table class="table table-dark table-bordered mt-3">
+        <tr>
+            <th>Order ID</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th>Total</th>
+            <th>Date</th>
+            <th>Action</th>
+        </tr>
+
+        {% for order in orders %}
+        <tr>
+            <td class="fw-bold text-warning">#GF{{ order.id|stringformat:"05d" }}</td>
+
+            <td>
+                {% if order.status == "Pending" %}
+                    <span class="badge rounded-pill bg-secondary px-3">Pending</span>
+                {% elif order.status == "Cooking" %}
+                    <span class="badge rounded-pill bg-warning text-dark px-3">Cooking</span>
+                {% elif order.status == "Ready" %}
+                    <span class="badge rounded-pill bg-info text-dark px-3">Ready</span>
+                {% elif order.status == "Cancelled" %}
+                    <span class="badge rounded-pill bg-danger px-3">Cancelled</span>
+                {% endif %}
+
+                {% if order.is_paid %}
+                    <span class="badge rounded-pill bg-success px-2 py-1 small" style="font-size: 0.7rem;"><i class="fas fa-check-circle"></i> PAID</span>
+                {% endif %}
+                
+                {% if order.is_served %}
+                    <span class="badge rounded-pill bg-dark border border-secondary px-2 py-1 small" style="font-size: 0.7rem;"><i class="fas fa-utensils"></i> SERVED</span>
+                {% endif %}
+            </td>
+
+            <td>
+                {% if order.payment_set.first %}
+                    <div class="d-flex align-items-center gap-2">
+                        {% if order.payment_set.first.is_paid %}
+                            <span class="text-success fw-bold"><i class="fas fa-check-circle"></i> {{ order.payment_set.first.method }}</span>
+                        {% else %}
+                            <span class="text-warning fw-bold"><i class="fas fa-clock"></i> {{ order.payment_set.first.method }} (Wait)</span>
+                        {% endif %}
+                        {% if order.payment_set.first.screenshot %}
+                            <a href="{{ order.payment_set.first.screenshot.url }}" target="_blank" class="btn btn-sm btn-outline-info p-1 py-0" title="View Screenshot"><i class="fas fa-image"></i></a>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <span class="text-muted small">No Record</span>
+                {% endif %}
+            </td>
+
+            <td class="text-success fw-bold">₹{{ order.total_amount }}</td>
+<td class="text-light">
+    {{ order.created_at|date:"d-m-Y" }}<br>
+    <small class="text-muted">
+        {{ order.created_at|time:"h:i A" }}
+    </small>
+</td>            <td>
+                <a href="{% url 'print_bill' order.id %}" class="btn btn-sm btn-outline-light" target="_blank">
+                    <i class="fas fa-print"></i> Bill
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- 💵 PENDING CASH PAYMENTS -->
+{% if pending_cash %}
+<div class="card p-3 mt-4 border-warning">
+    <h4 class="text-warning">Pending Cash Approvals</h4>
+    <table class="table table-dark table-bordered mt-3">
+        <tr>
+            <th>Order ID</th>
+            <th>Amount</th>
+            <th>Action</th>
+        </tr>
+        {% for payment in pending_cash %}
+        <tr>
+            <td>#{{ payment.order.token_number|stringformat:"05d" }} (Order #GF{{ payment.order.id }})</td>
+            <td>₹{{ payment.order.total_amount }}</td>
+            <td>
+                <form method="POST" action="/manager/approve-cash/{{ payment.id }}/">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm fw-bold">Approve Cash Received</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

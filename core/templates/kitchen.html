@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% include '_manager_navbar.html' %}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-warning fw-bold">Kitchen Control Center 👨‍🍳</h2>
+        <div class="badge bg-success p-2 px-3 fs-6">Total Served: {{ total_served }}</div>
+    </div>
+
+    <!-- Nav Tabs -->
+    <ul class="nav nav-pills mb-4 gap-2 justify-content-center" id="kitchenTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold px-4 rounded-pill position-relative" id="new-orders-tab" data-bs-toggle="pill" data-bs-target="#new-orders" type="button" role="tab">
+                NEW ORDERS
+                {% if new_orders.count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ new_orders.count }}
+                </span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 rounded-pill position-relative" id="status-tab" data-bs-toggle="pill" data-bs-target="#status" type="button" role="tab">
+                IN PROGRESS / READY
+                {% if in_progress.count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                    {{ in_progress.count }}
+                </span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 rounded-pill" id="served-tab" data-bs-toggle="pill" data-bs-target="#served" type="button" role="tab">
+                SERVED ORDERS
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="kitchenTabsContent">
+        
+        <!-- 1. NEW ORDERS -->
+        <div class="tab-pane fade show active" id="new-orders" role="tabpanel">
+            <div class="row">
+                {% for order in new_orders %}
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-dark border-secondary h-100 shadow {% if order.is_excess_stock and order.kitchen_acceptance_status == 'Pending' %}border-warning{% endif %}">
+                        <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-warning">#{{ order.token_number|stringformat:"05d" }}</span>
+                            <div>
+                                {% if order.is_high_order %}
+                                    <span class="badge bg-danger animate__animated animate__pulse animate__infinite me-1">HIGH ORDER</span>
+                                {% endif %}
+                                {% if order.kitchen_acceptance_status == 'Pending' %}
+                                    {% if order.is_excess_stock %}
+                                        <span class="badge bg-danger">EXCESS STOCK APPROVAL</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">New</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-success">Accepted</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if order.kitchen_alert %}
+                            <div class="alert alert-danger p-2 mb-2 animate__animated animate__flash animate__infinite">
+                                <i class="fas fa-bell me-2"></i> <strong>CUSTOMER ALERT!</strong>
+                            </div>
+                            {% endif %}
+                            <table class="table table-dark table-sm mb-0">
+                                <thead class="small text-muted">
+                                    <tr>
+                                        <th>ITEM</th>
+                                        <th class="text-end">QTY</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for oi in order.orderitem_set.all %}
+                                    <tr>
+                                        <td class="py-2 fs-5">{{ oi.item.name }}</td>
+                                        <td class="text-end py-2 fs-4 fw-bold text-warning">{{ oi.quantity }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer border-secondary">
+                            {% if order.kitchen_acceptance_status == 'Pending' %}
+                                <!-- Action to Accept/Reject -->
+                                <form action="{% url 'accept_order' order.id %}" method="POST" class="mb-2">
+                                    {% csrf_token %}
+                                    <input type="text" name="message" class="form-control form-control-sm bg-secondary text-white border-0 mb-2" placeholder="Message to customer (Optional)">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-success btn-sm flex-grow-1 fw-bold">ACCEPT</button>
+                                        <button type="submit" formaction="{% url 'reject_order' order.id %}" class="btn btn-danger btn-sm flex-grow-1 fw-bold">REJECT</button>
+                                    </div>
+                                </form>
+                            {% else %}
+                                <!-- Accepted: show Start Cooking and Alert Option -->
+                                <div class="d-flex flex-column gap-2">
+                                    <form action="/update-status/{{ order.id }}/" method="GET">
+                                        <input type="hidden" name="status" value="Cooking">
+                                        <button type="submit" class="btn btn-warning w-100 fw-bold">START COOKING</button>
+                                    </form>
+                                    
+                                    <!-- High Order Alert / Reply Option (Only shown if high order or if customer alerted) -->
+                                    {% if order.is_high_order or order.kitchen_alert %}
+                                    <div class="mt-1">
+                                        <form action="{% url 'kitchen_reply' order.id %}" method="POST">
+                                            {% csrf_token %}
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" name="message" class="form-control bg-secondary text-white border-0" placeholder="Alert/Reply Customer" required>
+                                                <button type="submit" class="btn {% if order.is_high_order %}btn-danger{% else %}btn-outline-info{% endif %}">
+                                                    <i class="fas fa-bell"></i> {% if order.kitchen_alert %}REPLY{% else %}ALERT{% endif %}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted fs-5">No new orders at the moment.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 2. STATUS (In Progress / Ready) -->
+        <div class="tab-pane fade" id="status" role="tabpanel">
+            <div class="row">
+                {% for order in in_progress %}
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-dark border-secondary h-100 shadow">
+                        <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-warning">#{{ order.token_number|stringformat:"05d" }}</span>
+                            <div>
+                                {% if order.status == 'Cooking' %}
+                                    <span class="badge bg-warning text-dark">Cooking</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">Ready</span>
+                                {% endif %}
+                                {% if order.is_paid %}
+                                    <span class="badge bg-success ms-1"><i class="fas fa-check"></i> PAID</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if order.kitchen_alert %}
+                            <div class="alert alert-danger p-2 mb-2 animate__animated animate__flash animate__infinite">
+                                <i class="fas fa-bell me-2"></i> <strong>CUSTOMER ALERT!</strong>
+                            </div>
+                            {% endif %}
+                            
+                            <table class="table table-dark table-sm mb-3">
+                                <thead class="small text-muted">
+                                    <tr>
+                                        <th>ITEM</th>
+                                        <th class="text-end">QTY</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for oi in order.orderitem_set.all %}
+                                    <tr>
+                                        <td class="py-2 fs-5">{{ oi.item.name }}</td>
+                                        <td class="text-end py-2 fs-4 fw-bold text-warning">{{ oi.quantity }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                            {% if order.is_updated %}
+                                <div class="badge bg-info text-dark mb-2 w-100">ORDER UPDATED</div>
+                            {% endif %}
+
+                            <!-- Reply to Customer Alert (Only if alert present or high order) -->
+                            {% if order.kitchen_alert or order.is_high_order %}
+                            <div class="mt-2">
+                                <form action="{% url 'kitchen_reply' order.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="message" class="form-control bg-secondary text-white border-0" placeholder="Reply to customer..." required>
+                                        <button type="submit" class="btn btn-outline-info">REPLY</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer border-secondary">
+                            {% if order.status == 'Cooking' %}
+                                <form action="/update-status/{{ order.id }}/" method="GET">
+                                    <input type="hidden" name="status" value="Ready">
+                                    <button type="submit" class="btn btn-info w-100 fw-bold">MARK AS READY</button>
+                                </form>
+                            {% else %}
+                                <div class="text-center text-info fw-bold p-2">
+                                    <i class="fas fa-check-double me-2"></i> Food Prepared And hand overed to Customer
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted fs-5">No active cooking orders.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 3. SERVED ORDERS -->
+        <div class="tab-pane fade" id="served" role="tabpanel">
+            <div class="card bg-dark border-secondary shadow">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Items</th>
+                                    <th>Served At</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in served_orders %}
+                                <tr>
+                                    <td class="fw-bold text-warning">#{{ order.token_number|stringformat:"05d" }}</td>
+                                    <td>
+                                        <small>
+                                            {% for oi in order.orderitem_set.all %}
+                                                {{ oi.item.name }} ({{ oi.quantity }}){% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div>{{ order.updated_at|date:"d M Y" }}</div>
+                                        <small class="text-muted">{{ order.updated_at|time:"H:i" }}</small>
+                                    </td>
+                                    <td class="text-success fw-bold">₹{{ order.total_amount }}</td>
+                                    <td>
+                                        <a href="{% url 'print_bill' order.id %}" target="_blank" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-print"></i> Bill
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% if not served_orders %}
+            <div class="text-center py-5">
+                <p class="text-muted">No served orders yet today.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .nav-pills .nav-link {
+        background: #1a1a1a;
+        color: #888;
+        border: 1px solid #333;
+        transition: all 0.3s ease;
+    }
+    .nav-pills .nav-link.active {
+        background: gold !important;
+        color: #000 !important;
+        border-color: gold;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+    .card {
+        transition: transform 0.2s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+
+{% endblock %}

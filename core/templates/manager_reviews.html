@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    {% include '_manager_navbar.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="fw-bold text-warning mb-0">Customer Reviews</h2>
+    </div>
+
+    <div class="row g-4">
+        {% for review in reviews %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card bg-dark text-white border-0 shadow h-100" style="border-radius: 15px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="text-warning">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= review.rating %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star text-white-50"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-white-50 small">{{ review.created_at|date:"d M Y" }}</span>
+                    </div>
+                    <p class="mb-0 italic" style="font-style: italic;">"{{ review.opinion }}"</p>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <p class="text-white-50">No reviews yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

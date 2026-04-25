@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- 🌟 HERO CAROUSEL -->
+    <div id="heroCarousel" class="carousel slide carousel-fade mb-5 shadow-lg rounded-4 overflow-hidden" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active" data-bs-interval="5000">
+                <img src="/media/images/outerview.png" class="d-block w-100" alt="Goldenfork Exterior">
+                <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInUp">
+                    <h2 class="text-warning">Welcome to Golden Fork</h2>
+                    <p>Experience the finest dining in the city with our premium atmosphere.</p>
+                </div>
+            </div>
+            <div class="carousel-item" data-bs-interval="5000">
+                <img src="/media/images/Dining.png" class="d-block w-100" alt="Fine Dining">
+                <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInUp">
+                    <h2 class="text-warning">Exquisite Dining</h2>
+                    <p>Savor every bite in our elegantly designed dining space.</p>
+                </div>
+            </div>
+            <div class="carousel-item" data-bs-interval="5000">
+                <img src="/media/images/Hospitality.png" class="d-block w-100" alt="Our Hospitality">
+                <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInUp">
+                    <h2 class="text-warning">Warm Hospitality</h2>
+                    <p>Our staff is dedicated to providing you with a memorable experience.</p>
+                </div>
+            </div>
+            <div class="carousel-item" data-bs-interval="5000">
+                <img src="/media/images/customer service.png" class="d-block w-100" alt="Customer Service">
+                <div class="carousel-caption d-none d-md-block animate__animated animate__fadeInUp">
+                    <h2 class="text-warning">Exceptional Service</h2>
+                    <p>Quick, efficient, and friendly service at your fingertips.</p>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+
+    <!-- 🏷️ WELCOME SECTION -->
+    <div id="order-section" class="text-center py-5 fade-in">
+        <h1 class="display-3 fw-bold" style="color: gold; text-shadow: 2px 2px 10px rgba(0,0,0,0.5);">GOLDEN FORK</h1>
+        <p class="lead text-light mb-4">Taste the Excellence, Feel the Luxury.</p>
+        
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            {% if status and status.is_open %}
+                <a href="/menu/" class="btn btn-warning btn-lg px-5 py-3">VIEW MENU 🍴</a>
+                <a href="/cart/" class="btn btn-outline-warning btn-lg px-5 py-3">VIEW CART 🛒</a>
+            {% else %}
+                <div class="alert alert-danger w-100">
+                    <h4 class="mb-0">🚫 We are currently CLOSED</h4>
+                    <p class="mb-0">Please visit us during our working hours.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+
+{% endblock %}

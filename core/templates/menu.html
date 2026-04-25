@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<h2 class="text-center mb-4 mt-5 pt-4 fade-in" style="color: gold; font-weight: bold; letter-spacing: 2px;">OUR MENU 🍴</h2>
+
+{% if status and not status.is_open %}
+<div class="alert alert-danger text-center p-4 shadow-sm mb-5">
+    <h3 class="mb-0"><i class="fas fa-store-alt-slash me-2"></i> RESTAURANT IS CURRENTLY CLOSED</h3>
+    <p class="mt-2 mb-0">You can view our menu, but ordering is disabled until we open.</p>
+</div>
+{% endif %}
+
+<!-- 🔍 Category Quick Links -->
+<div class="d-flex justify-content-center flex-wrap gap-2 mb-3 fade-in" id="category-filters">
+    <button class="btn btn-warning filter-btn px-4 shadow" data-filter="all">ALL ITEMS</button>
+    {% for category in categories %}
+    <button class="btn btn-outline-warning filter-btn px-4" data-filter="{{ category.name|slugify }}">{{ category.name|upper }}</button>
+    {% endfor %}
+</div>
+
+<!-- 🥬 Dietary Preference Filter -->
+<div class="d-flex justify-content-center flex-wrap gap-2 mb-5 fade-in" id="dietary-filters">
+    <button class="btn btn-success diet-btn px-3 shadow" data-diet="all">All</button>
+    <button class="btn btn-outline-success diet-btn px-3" data-diet="Veg">Veg</button>
+    <button class="btn btn-outline-danger diet-btn px-3" data-diet="Non-Veg">Non-Veg</button>
+</div>
+
+{% csrf_token %}
+
+<div id="menu-sections">
+    <!-- All Section (Visible by default) -->
+    <div class="menu-section" id="section-all">
+        {% for category in categories %}
+            <div class="category-group mb-5" id="group-{{ category.name|slugify }}">
+                <h3 class="mb-4 pb-2 border-bottom border-warning" style="color: gold;">{{ category.name }}</h3>
+                <div class="row">
+                    {% for item in items %}
+                        {% if category in item.categories.all %}
+                        <div class="col-lg-4 col-md-6 mb-4 menu-item-card" data-diet="{{ item.dietary_preference }}">
+                            <div class="card bg-dark h-100 shadow-sm border-0">
+                                {% if item.is_combo and item.image and item.image2 %}
+                                <div class="position-relative d-flex align-items-center justify-content-center bg-black" style="height:220px; overflow:hidden;">
+                                    <img src="{{ item.image.url }}" style="width:45%; height:100%; object-fit:cover;">
+                                    <div class="mx-1 fs-3 fw-bold text-warning">+</div>
+                                    <img src="{{ item.image2.url }}" style="width:45%; height:100%; object-fit:cover;">
+                                    {% if not item.is_available %}
+                                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0,0,0,0.6);">
+                                        <span class="badge bg-danger fs-5">UNAVAILABLE</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% elif item.image %}
+                                <div class="position-relative">
+                                    <img src="{{ item.image.url }}" class="card-img-top" style="height:220px; object-fit:cover;">
+                                    {% if not item.is_available %}
+                                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0,0,0,0.6);">
+                                        <span class="badge bg-danger fs-5">UNAVAILABLE</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                <div class="card-body text-center d-flex flex-column">
+                                    <h4 class="card-title text-white mb-1">{{ item.name }}</h4>
+                                    <div class="d-flex justify-content-center mb-2">
+                                        {% if item.dietary_preference == 'Veg' %}
+                                        <span class="badge bg-success">Veg</span>
+                                        {% elif item.dietary_preference == 'Non-Veg' %}
+                                        <span class="badge bg-danger">Non-Veg</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-muted small mb-2">{{ item.quantity }}</p>
+                                    <h5 class="text-success fw-bold mb-3 border-0">₹{{ item.price }}</h5>
+                                    
+                                    <div class="mt-auto">
+                                        {% if status and status.is_open %}
+                                            <div class="d-flex justify-content-center align-items-center gap-3 mb-3 bg-dark p-2 rounded-pill border border-secondary">
+                                                <button class="btn btn-sm btn-outline-warning rounded-circle" style="width:35px; height:35px; padding:0;" onclick="updateCart({{ item.id }}, 'remove', this)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       class="form-control bg-transparent text-white fw-bold text-center border-0 p-0 quantity-input" 
+                                                       id="qty-{{ item.id }}" 
+                                                       value="0" 
+                                                       style="width: 50px; font-size: 1.2rem;"
+                                                       onchange="updateCart({{ item.id }}, 'set', this)"
+                                                       data-stock="{{ item.stock_quantity }}">
+                                                <button class="btn btn-sm btn-warning rounded-circle" style="width:35px; height:35px; padding:0;" onclick="updateCart({{ item.id }}, 'add', this)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <a href="{% url 'cart' %}" class="btn btn-sm btn-success w-100 rounded-pill">
+                                                <i class="fas fa-shopping-cart me-1"></i> GO TO CART
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary w-100 rounded-pill disabled" disabled>
+                                                STORE CLOSED
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Fail-safe: Items without any category -->
+        {% if items %}
+            <div class="category-group mb-5" id="group-uncategorized" style="display: none;">
+                <h3 class="mb-4 pb-2 border-bottom border-warning" style="color: gold;">OTHER ITEMS</h3>
+                <div class="row">
+                    {% for item in items %}
+                        {% if not item.categories.all %}
+                        <div class="col-lg-4 col-md-6 mb-4 menu-item-card" data-diet="{{ item.dietary_preference }}">
+                            <!-- Card content (Same as above) -->
+                            <div class="card bg-dark h-100 shadow-sm border-0">
+                                {% if item.image %}
+                                <div class="position-relative">
+                                    <img src="{{ item.image.url }}" class="card-img-top" style="height:220px; object-fit:cover;">
+                                    {% if not item.is_available %}
+                                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0,0,0,0.6);">
+                                        <span class="badge bg-danger fs-5">UNAVAILABLE</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                <div class="card-body text-center d-flex flex-column">
+                                    <h4 class="card-title text-white mb-1">{{ item.name }}</h4>
+                                    <div class="d-flex justify-content-center mb-2">
+                                        {% if item.dietary_preference == 'Veg' %}
+                                        <span class="badge bg-success">Veg</span>
+                                        {% elif item.dietary_preference == 'Non-Veg' %}
+                                        <span class="badge bg-danger">Non-Veg</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-muted small mb-2">{{ item.quantity }}</p>
+                                    <h5 class="text-success fw-bold mb-3 border-0">₹{{ item.price }}</h5>
+                                    
+                                    <div class="mt-auto">
+                                        {% if status and status.is_open %}
+                                            <div class="d-flex justify-content-center align-items-center gap-3 mb-3 bg-dark p-2 rounded-pill border border-secondary">
+                                                <button class="btn btn-sm btn-outline-warning rounded-circle" style="width:35px; height:35px; padding:0;" onclick="updateCart({{ item.id }}, 'remove', this)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       class="form-control bg-transparent text-white fw-bold text-center border-0 p-0 quantity-input" 
+                                                       id="qty-{{ item.id }}" 
+                                                       value="0" 
+                                                       style="width: 50px; font-size: 1.2rem;"
+                                                       onchange="updateCart({{ item.id }}, 'set', this)"
+                                                       data-stock="{{ item.stock_quantity }}">
+                                                <button class="btn btn-sm btn-warning rounded-circle" style="width:35px; height:35px; padding:0;" onclick="updateCart({{ item.id }}, 'add', this)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <a href="{% url 'cart' %}" class="btn btn-sm btn-success w-100 rounded-pill">
+                                                <i class="fas fa-shopping-cart me-1"></i> GO TO CART
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary w-100 rounded-pill disabled" disabled>
+                                                STORE CLOSED
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🛒 Floating Cart Button -->
+{% if status and status.is_open %}
+<a href="{% url 'cart' %}" class="btn btn-success position-fixed bottom-0 end-0 m-4 rounded-pill shadow-lg d-flex align-items-center justify-content-center animate__animated animate__bounceIn" style="z-index: 1000; padding: 15px 25px; border: 2px solid #fff; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+    <i class="fas fa-shopping-cart me-2 fs-4"></i> GO TO CART
+</a>
+{% endif %}
+
+{% endblock %}
+
+{% block modals %}
+<!-- Excess Stock Modal -->
+<div class="modal fade" id="excessStockModal" tabindex="-1" aria-labelledby="excessStockModalLabel" aria-hidden="true" style="z-index: 2000;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-white border border-warning shadow-lg">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-warning" id="excessStockModalLabel">Stock Limit Reached</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <div class="mb-3">
+            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+        </div>
+        <p class="fs-5" id="excessStockMessage">You ordered excess limit of stocks if you want to order these quantity press continue</p>
+      </div>
+      <div class="modal-footer border-secondary justify-content-center">
+        <button type="button" class="btn btn-outline-light px-4 rounded-pill" data-bs-dismiss="modal">OK</button>
+        <button type="button" class="btn btn-warning px-4 rounded-pill fw-bold" id="continueExcessBtn">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% if request.session.cart %}
+    {{ request.session.cart|json_script:"cart-data" }}
+{% endif %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    let pendingExcessUpdate = null;
+
+    function updateCart(itemId, action, btnElement, force = false) {
+        const qtyElement = document.getElementById('qty-' + itemId);
+        if (!qtyElement) return;
+
+        const formData = new FormData();
+        formData.append('item_id', itemId);
+        formData.append('action', action);
+        
+        if (action === 'set') {
+            formData.append('quantity', btnElement.value);
+        }
+        if (force) {
+            formData.append('force', 'true');
+        }
+
+        fetch('/update-cart/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                const cart = data.cart;
+                const itemKey = itemId.toString();
+                let newQty = cart[itemKey] !== undefined ? cart[itemKey] : 0;
+                qtyElement.value = newQty;
+
+                if (action === 'add') {
+                    showToast('Added to cart! 🛒');
+                } else if (action === 'remove' && newQty >= 0) {
+                    showToast('Removed from cart! ❌');
+                }
+            } else if (data.status === 'stock_exceeded') {
+                const modalEl = document.getElementById('excessStockModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                document.getElementById('continueExcessBtn').onclick = function() {
+                    modal.hide();
+                    updateCart(itemId, action, btnElement, true);
+                };
+                modal.show();
+            } else if (data.status === 'error') {
+                alert(data.message);
+                if (data.cart && data.cart[itemId.toString()]) {
+                    qtyElement.value = data.cart[itemId.toString()];
+                } else {
+                    qtyElement.value = 0;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating cart:', error);
+            // Fallback for missing showToast
+            if (typeof showToast === 'function') {
+                showToast('Error updating cart. Please try again.');
+            } else {
+                alert('Error updating cart.');
+            }
+        });
+    }
+
+    // Advanced Filtering Logic
+    document.addEventListener("DOMContentLoaded", function() {
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const dietBtns = document.querySelectorAll('.diet-btn');
+        const sections = document.querySelectorAll('.category-group');
+        const menuItems = document.querySelectorAll('.menu-item-card');
+
+        let currentCategory = 'all';
+        let currentDiet = 'all';
+
+        function applyFilters() {
+            // First, filter items within each section based on dietary preference
+            menuItems.forEach(item => {
+                const itemDiet = item.getAttribute('data-diet');
+                if (currentDiet === 'all' || itemDiet === currentDiet) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Then, handle category sections
+            sections.forEach(section => {
+                const sectionSlug = section.id.replace('group-', '');
+                if (currentCategory === 'all' || sectionSlug === currentCategory) {
+                    section.style.display = 'block';
+                    section.classList.add('animate__animated', 'animate__fadeIn');
+                    
+                    // Check if this section has any visible items after diet filter
+                    const itemsInSection = section.querySelectorAll('.menu-item-card');
+                    let hasVisible = false;
+                    itemsInSection.forEach(i => {
+                        if (i.style.display !== 'none') hasVisible = true;
+                    });
+                    
+                    if (!hasVisible) {
+                        section.style.display = 'none';
+                    }
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterBtns.forEach(b => {
+                    b.classList.remove('btn-warning');
+                    b.classList.add('btn-outline-warning');
+                });
+                this.classList.remove('btn-outline-warning');
+                this.classList.add('btn-warning');
+
+                currentCategory = this.getAttribute('data-filter');
+                applyFilters();
+            });
+        });
+
+        dietBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                dietBtns.forEach(b => {
+                    if (b.getAttribute('data-diet') === 'all') {
+                        b.classList.remove('btn-success');
+                        b.classList.add('btn-outline-success');
+                    } else if (b.getAttribute('data-diet') === 'Veg') {
+                        b.classList.remove('btn-success');
+                        b.classList.add('btn-outline-success');
+                    } else {
+                        b.classList.remove('btn-danger');
+                        b.classList.add('btn-outline-danger');
+                    }
+                });
+
+                const dietType = this.getAttribute('data-diet');
+                if (dietType === 'all' || dietType === 'Veg') {
+                    this.classList.remove('btn-outline-success');
+                    this.classList.add('btn-success');
+                } else {
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-danger');
+                }
+
+                currentDiet = dietType;
+                applyFilters();
+            });
+        });
+
+        // Initialize quantities from session
+        const cartDataElement = document.getElementById('cart-data');
+        if (cartDataElement) {
+            try {
+                const initialCart = JSON.parse(cartDataElement.textContent);
+                for (const [itemId, qty] of Object.entries(initialCart)) {
+                    const qtyElement = document.getElementById('qty-' + itemId);
+                    if (qtyElement) {
+                        qtyElement.value = qty;
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing cart data:", e);
+            }
+        }
+    });
+</script>
+{% endblock %}

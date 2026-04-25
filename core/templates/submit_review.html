@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center text-center">
+        <div class="col-md-6">
+            <div class="card bg-dark text-white border-0 shadow-lg p-5" style="border-radius: 30px; background: linear-gradient(145deg, #1a1a1a, #000000);">
+                {% if success %}
+                <div class="animate__animated animate__zoomIn">
+                    <i class="fas fa-check-circle text-success mb-4" style="font-size: 5rem;"></i>
+                    <h2 class="fw-bold text-warning mb-3">Thank You!</h2>
+                    <p class="lead opacity-75">Your feedback helps us grow and serve you better.</p>
+                    <a href="/" class="btn btn-warning mt-4 px-5 py-3 fw-bold rounded-pill">Back to Home</a>
+                </div>
+                {% else %}
+                <div class="mb-4">
+                    <img src="{% static 'images/nav_logo.png' %}" width="80" class="mb-3">
+                    <h2 class="fw-bold text-warning">Rate Your Experience</h2>
+                    <p class="opacity-75">Tell us how we did today at Golden Fork!</p>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="star-rating mb-4 d-flex justify-content-center flex-row-reverse">
+                        <input type="radio" id="star5" name="rating" value="5" required /><label for="star5" title="5 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 stars"><i class="fas fa-star"></i></label>
+                        <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"><i class="fas fa-star"></i></label>
+                    </div>
+
+                    <div class="mb-4">
+                        <textarea name="opinion" class="form-control bg-secondary text-white border-0 py-3 px-4" rows="4" placeholder="Share your thoughts with us..." required style="border-radius: 15px;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold py-3 shadow rounded-pill">Submit Review</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.star-rating input {
+    display: none;
+}
+.star-rating label {
+    font-size: 2.5rem;
+    color: #444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 5px;
+}
+.star-rating input:checked ~ label {
+    color: gold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: gold;
+}
+</style>
+{% endblock %}

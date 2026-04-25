@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    {% include '_manager_navbar.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-warning mb-0">Restaurant QR Management</h2>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-info">Print All</button>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 justify-content-center" id="qrTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-5" id="table-tab" data-bs-toggle="pill" data-bs-target="#table-qrs" type="button" role="tab">Table QRs</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-5" id="review-tab" data-bs-toggle="pill" data-bs-target="#review-qrs" type="button" role="tab">Review QRs</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="qrTabsContent">
+        <!-- Table QRs Section -->
+        <div class="tab-pane fade show active" id="table-qrs" role="tabpanel">
+            <h4 class="text-white-50 mb-3 text-center">Scan to Order (Table Links)</h4>
+            <div class="row">
+                {% for qr in table_qrs %}
+                <div class="col-md-3 col-sm-6 mb-4 text-center">
+                    <div class="card bg-dark text-light border-secondary p-3 shadow h-100">
+                        <h4 class="fw-bold">Table {{ forloop.counter }}</h4>
+                        <img src="{% static 'qr_codes/' %}{{ qr }}" alt="Table QR" class="img-fluid rounded bg-white p-2 mb-2" style="max-width: 200px; margin: 0 auto;">
+                        <p class="text-muted small mb-0">{{ qr }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">No Table QRs found. Please generate them first.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Review QRs Section -->
+        <div class="tab-pane fade" id="review-qrs" role="tabpanel">
+            <h4 class="text-white-50 mb-3 text-center">Scan to Review (Customer Feedback)</h4>
+            <div class="row">
+                {% for qr in review_qrs %}
+                <div class="col-md-3 col-sm-6 mb-4 text-center">
+                    <div class="card bg-dark text-light border-warning p-3 shadow h-100" style="border: 1px solid gold;">
+                        <h4 class="fw-bold text-warning">Review QR {{ forloop.counter }}</h4>
+                        <img src="{% static 'review_qrs/' %}{{ qr }}" alt="Review QR" class="img-fluid rounded bg-white p-2 mb-2" style="max-width: 200px; margin: 0 auto;">
+                        <p class="text-muted small mb-0">{{ qr }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">No Review QRs found. Please run the generation script.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-pills .nav-link { color: white; border: 1px solid #444; margin: 0 5px; }
+    .nav-pills .nav-link.active { background-color: gold; color: black; font-weight: bold; }
+    @media print {
+        .nav-pills, .btn, .navbar, .d-flex.gap-2 { display: none !important; }
+        .tab-pane { display: block !important; opacity: 1 !important; }
+        .card { border: 1px solid #ddd !important; }
+    }
+</style>
+{% endblock %}

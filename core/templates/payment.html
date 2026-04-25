@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card bg-dark text-light p-4 shadow-lg mx-auto" style="max-width: 600px; border: 1px solid #333;">
+        
+        {% if error %}
+            <div class="alert alert-danger text-center">{{ error }}</div>
+        {% endif %}
+
+        {% if list_mode %}
+            <div class="text-center mb-4">
+                <h2 style="color: gold; font-weight: bold;">Order History & Payment 🧾</h2>
+                <p class="text-muted">Manage all your orders from this session.</p>
+            </div>
+
+            <!-- Tab Navigation -->
+            <ul class="nav nav-pills mb-4 gap-2 justify-content-center" id="paymentTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active fw-bold px-3 rounded-pill position-relative" data-bs-toggle="pill" data-bs-target="#pending-pay" type="button">
+                        PENDING
+                        {% if pending_payments.count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ pending_payments.count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold px-3 rounded-pill" data-bs-toggle="pill" data-bs-target="#paid-pay" type="button">PAID</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold px-3 rounded-pill" data-bs-toggle="pill" data-bs-target="#cancelled-pay" type="button">CANCELLED</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="paymentTabsContent">
+                <!-- 1. PENDING PAYMENTS -->
+                <div class="tab-pane fade show active" id="pending-pay">
+                    {% if pending_payments.exists %}
+                        {% for o in pending_payments %}
+                        <div class="order-item p-3 mb-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10 d-flex justify-content-between align-items-center animate__animated animate__fadeIn">
+                            <div>
+                                <h5 class="mb-1 text-warning">#GF{{ o.id|stringformat:"05d" }}</h5>
+                                <p class="mb-0 small text-light">
+                                    <span class="badge bg-secondary me-2">{{ o.status|upper }}</span>
+                                    <span class="fw-bold">₹{{ o.total_amount }}</span>
+                                </p>
+                            </div>
+                            <a href="{% url 'payment' o.id %}" class="btn btn-sm btn-warning fw-bold px-3">Pay Now</a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 border border-secondary rounded bg-dark shadow-sm">
+                            <i class="fas fa-receipt text-warning mb-3" style="font-size: 3.5rem;"></i>
+                            <h5 class="text-warning fw-bold">There is no pending orders for payment.</h5>
+                            <p class="text-muted small mb-0">You don't have any orders waiting for payment at the moment.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 2. PAID ORDERS -->
+                <div class="tab-pane fade" id="paid-pay">
+                    {% for o in paid_orders %}
+                    <div class="order-item p-3 mb-3 border border-success border-opacity-25 rounded bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1 text-success">#GF{{ o.id|stringformat:"05d" }}</h5>
+                            <p class="mb-0 small text-muted">
+                                <span class="badge bg-success me-2">PAID</span>
+                                <span>₹{{ o.total_amount }}</span>
+                            </p>
+                        </div>
+                        <a href="{% url 'payment' o.id %}" class="btn btn-sm btn-outline-success">View Details</a>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted py-4">No paid orders yet.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- 3. CANCELLED ORDERS -->
+                <div class="tab-pane fade" id="cancelled-pay">
+                    {% for o in cancelled_orders %}
+                    <div class="order-item p-3 mb-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1 text-danger">#GF{{ o.id|stringformat:"05d" }}</h5>
+                            <p class="mb-0 small text-muted">
+                                <span class="badge bg-danger me-2">CANCELLED</span>
+                                {% if o.kitchen_reply %}
+                                    <span class="text-danger-emphasis ms-2"><i class="fas fa-info-circle me-1"></i> {{ o.kitchen_reply }}</span>
+                                {% else %}
+                                    <span class="text-muted ms-2">Order was cancelled.</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <span class="badge bg-outline-danger border border-danger text-danger px-2">CANCELLED</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted py-4">No cancelled orders.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        {% else %}
+        
+        <div class="text-center mb-4">
+            <h2 style="color: gold; font-weight: bold;">Payment Checkout 💳</h2>
+            
+            <div class="my-4 p-3 bg-secondary rounded text-center shadow-sm">
+                <h4 class="mb-0 text-dark fw-bold">ORDER ID</h4>
+                <h1 class="display-3 fw-bold text-white mb-0">#GF{{ order.id|stringformat:"05d" }}</h1>
+            </div>
+        </div>
+
+        <div class="text-center mb-4">
+            <h3 class="fw-bold">Amount to Pay: <span style="color: lightgreen;">₹{{ order.total_amount }}</span></h3>
+            
+            <!-- Dynamic Status Badge -->
+            <h4 class="mt-3">Order Status: 
+                <span id="order-status-badge" class="badge {% if order.status == 'Pending' %}bg-secondary{% elif order.status == 'Cooking' %}bg-warning text-dark{% else %}bg-success{% endif %} p-2 px-3">{{ order.status|upper }}</span>
+            </h4>
+        </div>
+
+        <hr class="border-secondary">
+
+        <!-- Payment Section -->
+        <div id="payment-section" class="mt-4" style="display: {% if order.status == 'Pending' and not order.is_confirmed %}none{% else %}block{% endif %};">
+            {% if order.is_paid %}
+                <div class="alert alert-success text-center fw-bold fs-4 fade-in">
+                    <i class="fas fa-check-circle"></i> PAYMENT SUCCESSFUL
+                </div>
+                <div class="text-center d-flex gap-2 justify-content-center">
+                    <a href="{% url 'print_bill' order.id %}" target="_blank" class="btn btn-warning mt-3 px-4 py-2 fw-bold">
+                        <i class="fas fa-download me-2"></i> DOWNLOAD RECEIPT
+                    </a>
+                    <a href="/payment/" class="btn btn-outline-warning mt-3 px-4 py-2">BACK TO LIST</a>
+                </div>
+            {% elif payment %}
+                <div class="alert alert-info text-center p-4">
+                    <h4 class="fw-bold"><i class="fas fa-clock me-2"></i> Payment Initiated</h4>
+                    <p class="mb-0">You have selected: <strong>{{ payment.method }}</strong></p>
+                    <p class="mt-2 small">Please wait for manager confirmation or complete the process at the counter.</p>
+                </div>
+                <div class="text-center">
+                    <a href="/payment/" class="btn btn-outline-warning">BACK TO LIST</a>
+                </div>
+            {% else %}
+                <div class="text-center mb-4">
+                    <p class="text-info mb-3"><i class="fas fa-info-circle"></i> Please complete payment to proceed.</p>
+                    
+                    <div class="bg-white p-2 d-inline-block rounded-3 mb-3 shadow">
+                        <img src="{% static 'images/qr.png' %}" style="max-width:180px;">
+                    </div>
+                    <h5 class="fw-bold text-warning">UPI ID: maneeshkallada37@oksbi</h5>
+                </div>
+
+                <form method="POST" action="/confirm-payment/{{ order.id }}/" enctype="multipart/form-data" class="mt-4 p-3 rounded bg-dark border border-secondary shadow-sm">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-white">Select Payment Method:</label>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="method" value="UPI" id="methodUPI" autocomplete="off" checked>
+                                <label class="btn btn-outline-warning w-100 py-3" for="methodUPI">
+                                    <i class="fas fa-mobile-alt mb-2 d-block fs-4"></i> UPI / Online
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="method" value="Cash" id="methodCash" autocomplete="off">
+                                <label class="btn btn-outline-info w-100 py-3" for="methodCash">
+                                    <i class="fas fa-wallet mb-2 d-block fs-4"></i> Pay at Counter
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-white">Upload Screenshot <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">Optional</span></label>
+                        <input type="file" name="screenshot" class="form-control bg-dark text-light border-secondary">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold p-3 fs-5">CONFIRM PAYMENT</button>
+                </form>
+            {% endif %}
+        </div>
+
+        <!-- Waiting Message -->
+        <div id="waiting-message" class="text-center mt-4" style="display: {% if order.status == 'Pending' and not order.is_confirmed %}block{% else %}none{% endif %};">
+            <div class="spinner-border text-warning" role="status"></div>
+            <h5 class="mt-3 text-muted">Please wait until the kitchen confirms your order to proceed with payment.</h5>
+        </div>
+        
+        {% if request.session.manager and order.status != 'Paid' %}
+        <hr class="border-secondary mt-5">
+        <div class="text-center">
+            <p class="text-muted">Manager Options:</p>
+            <form method="POST" action="/counter-payment/{{ order.id }}/">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-info">Complete Payment at Counter</button>
+            </form>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal fade" id="notificationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-warning" style="border-radius: 15px;">
+            <div class="modal-body text-center p-5">
+                <i class="fas fa-info-circle text-warning mb-3" style="font-size: 3.5rem;"></i>
+                <h4 id="modalMessage" class="fw-bold mb-4"></h4>
+                <button class="btn btn-warning px-5 py-2 fw-bold rounded-pill" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="cashConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-warning" style="border-radius: 15px;">
+            <div class="modal-body text-center p-5">
+                <i class="fas fa-wallet text-warning mb-3" style="font-size: 3rem;"></i>
+                <h4 class="fw-bold mb-3">Are you sure you want to pay at the counter?</h4>
+                <p class="opacity-75 text-muted">A bill will be generated for payment at the cash counter.</p>
+                <div class="mt-4 d-flex justify-content-center gap-3">
+                    <button class="btn btn-outline-light px-4 py-2 rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-warning px-4 py-2 fw-bold rounded-pill" id="confirmCashBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showModalAlert(message) {
+        document.getElementById('modalMessage').innerText = message;
+        new bootstrap.Modal(document.getElementById('notificationModal')).show();
+    }
+
+    {% if not list_mode and order %}
+    // Play sound and show toast if already paid
+    {% if order.status == 'Paid' %}
+    window.addEventListener('load', function() {
+        var sound = document.getElementById("paymentSound");
+        if (sound) sound.play().catch(e => console.log('Audio playback prevented', e));
+        showToast('Payment successful!');
+    });
+    {% endif %}
+
+    // Polling Order Status
+    let lastStatus = "{{ order.status }}";
+    setInterval(function() {
+        fetch('/order-status-api/{{ order.id }}/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== lastStatus) {
+                    let msg = "";
+                    if (data.status === 'Paid') msg = "Payment confirmed! Your order is being served.";
+                    else if (data.status === 'Cooking') msg = "Kitchen has confirmed your order! Preparation started.";
+                    else if (data.status === 'Ready') msg = "Your order is ready!";
+
+                    if (msg) {
+                        showModalAlert(msg);
+                        document.getElementById('notificationModal').addEventListener('hidden.bs.modal', function () {
+                            location.reload();
+                        }, {once: true});
+                    } else location.reload();
+                }
+            });
+    }, 5000);
+
+    const methodCash = document.getElementById('methodCash');
+    const paymentForm = document.querySelector('form');
+    let isCashConfirmed = false;
+
+    if (methodCash) {
+        methodCash.addEventListener('change', function() {
+            if (this.checked) showToast('Please pay at the cash counter after confirmation.');
+        });
+    }
+
+    paymentForm?.addEventListener('submit', function(e) {
+        if (methodCash && methodCash.checked && !isCashConfirmed) {
+            e.preventDefault();
+            const cashModal = new bootstrap.Modal(document.getElementById('cashConfirmModal'));
+            cashModal.show();
+            document.getElementById('confirmCashBtn').onclick = function() {
+                isCashConfirmed = true;
+                cashModal.hide();
+                paymentForm.submit();
+            };
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card bg-dark text-white border-0 shadow-lg animate__animated animate__fadeIn" style="border-radius: 20px;">
+                <div class="card-header bg-warning p-4 text-center border-0">
+                    <h2 class="fw-bold mb-0 text-dark">Track Your Complaints</h2>
+                    <p class="mb-0 text-dark opacity-75">Check the progress and status of your reported issues.</p>
+                </div>
+                
+                <div class="card-body p-5">
+                    {% if not complaints and not error %}
+                    <!-- Login Section -->
+                    <div id="loginSection" class="text-center mx-auto" style="max-width: 500px;">
+                        <h4 class="mb-4 fw-bold">Verification Required</h4>
+                        <div id="detailsForm">
+                            <div class="mb-3 text-start">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" id="loginName" class="form-control bg-secondary text-white border-0 py-3" placeholder="Enter name">
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" id="loginEmail" class="form-control bg-secondary text-white border-0 py-3" placeholder="Enter email">
+                            </div>
+                            <div class="mb-4 text-start">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" id="loginPhone" pattern="[0-9]{10}" maxlength="10" class="form-control bg-secondary text-white border-0 py-3" placeholder="Enter 10-digit phone" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                                <div class="form-text text-white-50 small">Must be exactly 10 digits.</div>
+                            </div>
+                            <button type="button" onclick="requestLoginOTP()" class="btn btn-warning btn-lg w-100 fw-bold py-3 shadow">Send OTP to Email</button>
+                        </div>
+
+                        <div id="otpSection" style="display: none;">
+                            <p class="mb-4">Enter the 6-digit code sent to your email.</p>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="name" id="hiddenName">
+                                <input type="hidden" name="email" id="hiddenEmail">
+                                <input type="hidden" name="phone" id="hiddenPhone">
+                                <input type="text" name="otp" class="form-control form-control-lg bg-secondary text-white border-0 text-center fw-bold mb-4" placeholder="000000" maxlength="6" style="letter-spacing: 10px; font-size: 2rem;">
+                                <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold py-3 shadow">Verify & View Status</button>
+                                <button type="button" onclick="resetLogin()" class="btn btn-link text-white-50 mt-3">Back to Details</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% elif error %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle text-danger mb-3" style="font-size: 4rem;"></i>
+                        <h4 class="text-danger">{{ error }}</h4>
+                        <a href="/complaint-status/" class="btn btn-warning mt-4">Try Again</a>
+                    </div>
+                    {% else %}
+                    <!-- Complaints List -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="text-warning fw-bold mb-0">Your Complaints</h4>
+                        <a href="/complaint-status/" class="text-white-50 small">Refresh List</a>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover border-secondary align-middle">
+                            <thead class="text-warning">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Manager Reply</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in complaints %}
+                                <tr>
+                                    <td class="fw-bold text-white-50">#{{ complaint.id }}</td>
+                                    <td>{{ complaint.created_at|date:"d M Y" }}</td>
+                                    <td>
+                                        <span class="badge {% if complaint.status == 'Resolved' or complaint.status == 'Closed' %}bg-success{% elif complaint.status == 'Pending' %}bg-warning text-dark{% else %}bg-info{% endif %} px-3 py-2">
+                                            {{ complaint.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;" title="{{ complaint.description }}">
+                                            {{ complaint.description }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if complaint.manager_reply %}
+                                        <div class="p-2 bg-secondary rounded small">
+                                            {{ complaint.manager_reply }}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-white-50 small italic">Waiting for reply...</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function requestLoginOTP() {
+    const name = document.getElementById('loginName').value;
+    const email = document.getElementById('loginEmail').value;
+    const phone = document.getElementById('loginPhone').value;
+
+    if (!name || !email || !phone) {
+        showToast("Please fill all mandatory fields.");
+        return;
+    }
+    
+    if (!email.includes('@')) {
+        showToast("Please enter a valid email address.");
+        return;
+    }
+
+    if (phone.length !== 10) {
+        showToast("Phone number must be exactly 10 digits.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch('/complaint-status/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'otp_sent') {
+            document.getElementById('hiddenName').value = name;
+            document.getElementById('hiddenEmail').value = email;
+            document.getElementById('hiddenPhone').value = phone;
+            document.getElementById('detailsForm').style.display = 'none';
+            document.getElementById('otpSection').style.display = 'block';
+            showToast("OTP sent to your email.");
+        } else {
+            showToast(data.message);
+        }
+    });
+}
+
+function resetLogin() {
+    document.getElementById('detailsForm').style.display = 'block';
+    document.getElementById('otpSection').style.display = 'none';
+}
+</script>
+{% endblock %}

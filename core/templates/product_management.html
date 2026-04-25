@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    {% include '_manager_navbar.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-warning">Product Management</h2>
+        <form method="GET" class="d-flex gap-2" style="max-width: 400px;">
+            <input type="text" name="search" value="{{ query }}" class="form-control bg-dark text-white border-secondary" placeholder="Search food or category...">
+            <button type="submit" class="btn btn-warning">Search</button>
+            {% if query %}
+                <a href="{% url 'product_management' %}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="card bg-dark text-light p-4 shadow-lg border-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr class="text-warning">
+                        <th>Image</th>
+                        <th>Name & Price</th>
+                        <th>Categories</th>
+                        <th>Status & Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr id="row-{{ item.id }}">
+                        <td>
+                            {% if item.image %}
+                                <img src="{{ item.image.url }}" alt="{{ item.name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                            {% else %}
+                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form onsubmit="submitUpdate(event, {{ item.id }})" action="{% url 'update_item' item.id %}" method="POST" id="update-form-{{ item.id }}">
+                                {% csrf_token %}
+                                <input type="text" name="name" value="{{ item.name }}" class="form-control form-control-sm bg-dark text-white border-secondary mb-2" required>
+                                <div class="input-group input-group-sm mb-2">
+                                    <span class="input-group-text bg-secondary text-white border-0">₹</span>
+                                    <input type="number" step="0.01" name="price" value="{{ item.price }}" class="form-control bg-dark text-white border-secondary" required>
+                                </div>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-secondary text-white border-0">Stock</span>
+                                    <input type="number" name="stock_quantity" value="{{ item.stock_quantity }}" class="form-control bg-dark text-white border-secondary">
+                                </div>
+                                <div class="mt-2">
+                                    <select name="dietary_preference" class="form-select form-select-sm bg-dark text-white border-secondary">
+                                        <option value="Veg" {% if item.dietary_preference == 'Veg' %}selected{% endif %}>Veg</option>
+                                        <option value="Non-Veg" {% if item.dietary_preference == 'Non-Veg' %}selected{% endif %}>Non-Veg</option>
+                                    </select>
+                                </div>
+                        </td>
+                        <td style="min-width: 200px;">
+                                <select name="categories" class="form-select form-select-sm bg-dark text-white border-secondary" multiple size="5" required>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat.id }}" {% if cat in item.categories.all %}selected{% endif %}>{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="mt-2 text-warning small fw-bold" style="font-size: 0.75rem;">
+                                    <i class="fas fa-info-circle me-1"></i> Ctrl button to select multiple category
+                                </div>
+                        </td>
+                        <td>
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary" id="btn-update-{{ item.id }}">Update Details</button>
+                                </form>
+                                <div class="d-flex gap-2">
+                                    <button onclick="toggleAvailability({{ item.id }})" class="btn btn-sm {% if item.is_available %}btn-success{% else %}btn-secondary{% endif %} flex-grow-1 fw-bold" id="btn-avail-{{ item.id }}">
+                                        {% if item.is_available %}
+                                            <i class="fas fa-check-circle me-1"></i> Enabled
+                                        {% else %}
+                                            <i class="fas fa-times-circle me-1"></i> Disabled
+                                        {% endif %}
+                                    </button>
+                                    <a href="{% url 'delete_item' item.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this item?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            No products found matching your search.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+async function submitUpdate(event, itemId) {
+    event.preventDefault();
+    const form = event.target;
+    const btn = document.getElementById('btn-update-' + itemId);
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    btn.disabled = true;
+    
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken
+            }
+        });
+        
+        if (response.ok) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Updated!';
+            btn.className = 'btn btn-sm btn-success';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.className = 'btn btn-sm btn-primary';
+                btn.disabled = false;
+            }, 1500);
+        } else {
+            alert('Error updating product.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (error) {
+        console.error(error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function toggleAvailability(itemId) {
+    const btn = document.getElementById('btn-avail-' + itemId);
+    const url = `/manager/toggle-availability/${itemId}/`;
+    
+    // Add a loading class
+    btn.classList.add('opacity-50');
+    
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await response.json();
+        
+        btn.classList.remove('opacity-50');
+        
+        if (data.status === 'success') {
+            if (data.is_available) {
+                btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Enabled';
+                btn.className = 'btn btn-sm btn-success flex-grow-1 fw-bold';
+            } else {
+                btn.innerHTML = '<i class="fas fa-times-circle me-1"></i> Disabled';
+                btn.className = 'btn btn-sm btn-secondary flex-grow-1 fw-bold';
+            }
+        }
+    } catch (error) {
+        console.error(error);
+        btn.classList.remove('opacity-50');
+    }
+}
+</script>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: #222 !important;
+        border-color: gold !important;
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+    .btn {
+        transition: all 0.1s ease !important; /* Fast transition */
+    }
+</style>
+{% endblock %}

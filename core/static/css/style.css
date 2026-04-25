@@ -1,0 +1,111 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #000;
+}
+
+.nav-link-custom {
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 5px 10px;
+}
+
+.nav-link-custom:hover {
+    color: #ffffff !important;
+    text-decoration: none !important;
+    transform: translateY(-2px);
+}
+
+.nav-link-custom::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: gold;
+    transition: width 0.3s ease;
+}
+
+.nav-link-custom:hover::after {
+    width: 100%;
+}
+
+.card {
+    background-color: #0a0a0a !important;
+    border: 1px solid #222 !important;
+    border-radius: 15px !important;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    border-color: gold !important;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
+}
+
+.btn-warning {
+    background: linear-gradient(45deg, #ffd700, #ffae00);
+    border: none;
+    font-weight: bold;
+    color: #000;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(45deg, #ffae00, #ffd700);
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.btn-outline-warning {
+    border: 2px solid gold;
+    color: gold;
+    font-weight: bold;
+    border-radius: 8px;
+}
+
+.btn-outline-warning:hover {
+    background-color: gold;
+    color: #000;
+}
+
+h1, h2, h3, h4, h5 {
+    font-weight: 700;
+}
+
+.quantity-display {
+    min-width: 30px;
+    text-align: center;
+    color: #fff;
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Carousel Styles */
+.carousel-item img {
+    height: 500px;
+    object-fit: cover;
+}
+
+.carousel-caption {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
