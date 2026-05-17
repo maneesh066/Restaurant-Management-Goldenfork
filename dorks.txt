@@ -1,0 +1,17 @@
+# Google Dorks for Goldenfork
+# These queries can be used on Google to monitor your site's indexing and search engine visibility once hosted.
+
+# 1. Check if your site is indexed and list all indexed pages
+site:yourdomain.com
+
+# 2. Find specific keywords or menu items on your site
+site:yourdomain.com "goldenfork"
+
+# 3. Check for exposed login or admin pages (for security monitoring)
+site:yourdomain.com intitle:"login" OR inurl:"admin" OR inurl:"login"
+
+# 4. Check for potentially exposed sensitive files
+site:yourdomain.com ext:txt OR ext:env OR ext:log OR ext:sql OR ext:db
+
+# 5. Find mentions of your restaurant or project on other websites
+"goldenfork" -site:yourdomain.com
