@@ -2,3 +2,4 @@ Django
 qrcode[pil]
 Pillow
 gunicorn
+whitenoise
