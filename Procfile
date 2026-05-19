@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && gunicorn goldenfork.wsgi --workers 4 --threads 4
+web: python manage.py collectstatic --noinput && gunicorn goldenfork.wsgi --workers 2 --threads 4
