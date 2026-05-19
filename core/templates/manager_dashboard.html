@@ -36,6 +36,7 @@
 <div class="card p-3" id="orders-table">
     <h4>All Orders</h4>
 
+    <div class="table-responsive">
     <table class="table table-dark table-bordered mt-3">
         <tr>
             <th>Order ID</th>
@@ -101,12 +102,14 @@
         </tr>
         {% endfor %}
     </table>
+    </div>
 </div>
 
 <!-- 💵 PENDING CASH PAYMENTS -->
 {% if pending_cash %}
 <div class="card p-3 mt-4 border-warning">
     <h4 class="text-warning">Pending Cash Approvals</h4>
+    <div class="table-responsive">
     <table class="table table-dark table-bordered mt-3">
         <tr>
             <th>Order ID</th>
@@ -126,6 +129,7 @@
         </tr>
         {% endfor %}
     </table>
+    </div>
 </div>
 {% endif %}
 
