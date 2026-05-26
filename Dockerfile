@@ -19,5 +19,5 @@ COPY . /app/
 # Expose port 8000 for the app
 EXPOSE 8000
 
-# Run the Django application using Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "goldenfork.wsgi:application"]
+# Run the Django application using Gunicorn dynamically bound to $PORT
+CMD python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:$PORT goldenfork.wsgi:application
